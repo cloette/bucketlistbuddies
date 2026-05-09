@@ -3,27 +3,63 @@ import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XMarkIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../../lib/supabase'
 
-export default function AuthModal({ isOpen, onClose }) {
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+const INPUT = 'w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-brand/40'
 
-  async function handleMagicLink(e) {
+export default function AuthModal({ isOpen, onClose }) {
+  const [tab, setTab]                       = useState('signin')
+  const [email, setEmail]                   = useState('')
+  const [password, setPassword]             = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading]               = useState(false)
+  const [error, setError]                   = useState('')
+  const [signedUp, setSignedUp]             = useState(false)
+
+  function switchTab(t) {
+    setTab(t)
+    setError('')
+    setPassword('')
+    setConfirmPassword('')
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault()
-    const trimmed = email.trim()
-    if (!trimmed) return
-    setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: { emailRedirectTo: window.location.origin },
-    })
+    if (tab === 'signup') {
+      if (password.length < 8) {
+        return setError('Password must be at least 8 characters.')
+      }
+      if (password !== confirmPassword) {
+        return setError('Passwords do not match.')
+      }
+    }
 
-    setLoading(false)
-    if (error) setError(error.message)
-    else setSent(true)
+    setLoading(true)
+
+    if (tab === 'signin') {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+      setLoading(false)
+      if (error) setError(error.message)
+      else handleClose()
+    } else {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      })
+      setLoading(false)
+      if (error) {
+        setError(error.message)
+      } else if (data.session) {
+        // Email confirmation disabled in Supabase — user is signed in immediately
+        handleClose()
+      } else {
+        // Email confirmation enabled — show the check-your-email screen
+        setSignedUp(true)
+      }
+    }
   }
 
   async function handleGoogle() {
@@ -35,19 +71,16 @@ export default function AuthModal({ isOpen, onClose }) {
 
   function handleClose() {
     setEmail('')
-    setSent(false)
+    setPassword('')
+    setConfirmPassword('')
     setError('')
+    setSignedUp(false)
+    setTab('signin')
     onClose()
   }
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={handleClose}
-      transition
-      className="relative z-50"
-    >
-      {/* Backdrop */}
+    <Dialog open={isOpen} onClose={handleClose} transition className="relative z-50">
       <div className="fixed inset-0 bg-black/50 transition duration-200 ease-out data-[closed]:opacity-0" />
 
       <div className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -55,7 +88,6 @@ export default function AuthModal({ isOpen, onClose }) {
           transition
           className="bg-white w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl shadow-xl p-6 pb-8 sm:pb-6 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:translate-y-4 sm:data-[closed]:translate-y-0 sm:data-[closed]:scale-95"
         >
-          {/* Close button */}
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 text-dim-grey hover:text-gray-900 transition-colors"
@@ -63,16 +95,49 @@ export default function AuthModal({ isOpen, onClose }) {
             <XMarkIcon className="w-5 h-5" />
           </button>
 
-          {!sent ? (
+          {signedUp ? (
+            <div className="text-center py-4">
+              <div className="w-14 h-14 bg-indigo-brand/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <EnvelopeIcon className="w-7 h-7 text-indigo-brand" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Check your email</h3>
+              <p className="text-sm text-dim-grey mb-6">
+                We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+              </p>
+              <button
+                onClick={() => setSignedUp(false)}
+                className="text-sm text-indigo-brand hover:underline"
+              >
+                &larr; Back
+              </button>
+            </div>
+          ) : (
             <>
-              <DialogTitle className="text-lg font-bold text-gray-900 mb-1 pr-6">
+              <DialogTitle className="text-lg font-bold text-gray-900 mb-4 pr-6">
                 Welcome to Bucket List Buddies
               </DialogTitle>
-              <p className="text-sm text-dim-grey mb-6">
-                Sign in or create a free account to get started.
-              </p>
 
-              {/* Google */}
+              {/* Sign in / Create account tabs */}
+              <div className="flex border-b border-gray-200 mb-5">
+                {[
+                  { key: 'signin', label: 'Sign in' },
+                  { key: 'signup', label: 'Create account' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => switchTab(key)}
+                    className={`flex-1 pb-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                      tab === key
+                        ? 'border-indigo-brand text-indigo-brand'
+                        : 'border-transparent text-dim-grey hover:text-gray-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Google OAuth */}
               <button
                 onClick={handleGoogle}
                 className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors mb-4"
@@ -81,53 +146,57 @@ export default function AuthModal({ isOpen, onClose }) {
                 Continue with Google
               </button>
 
-              {/* Divider */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-px bg-gray-200" />
                 <span className="text-xs text-dim-grey">or</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
 
-              {/* Magic link */}
-              <form onSubmit={handleMagicLink} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="your@email.com"
+                  placeholder="Email"
                   required
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-brand/40"
+                  autoComplete="email"
+                  className={INPUT}
                 />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                  autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
+                  className={INPUT}
+                />
+                {tab === 'signup' && (
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                    required
+                    autoComplete="new-password"
+                    className={INPUT}
+                  />
+                )}
+
                 {error && <p className="text-xs text-red-500">{error}</p>}
+
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full bg-indigo-brand text-white font-semibold py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
                 >
-                  {loading ? 'Sending…' : 'Send magic link'}
+                  {loading
+                    ? (tab === 'signin' ? 'Signing in…' : 'Creating account…')
+                    : (tab === 'signin' ? 'Sign in' : 'Create account')
+                  }
                 </button>
               </form>
-
-              <p className="text-xs text-dim-grey text-center mt-4">
-                No password required. We'll email you a sign-in link.
-              </p>
             </>
-          ) : (
-            <div className="text-center py-4">
-              <div className="w-14 h-14 bg-indigo-brand/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <EnvelopeIcon className="w-7 h-7 text-indigo-brand" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Check your email</h3>
-              <p className="text-sm text-dim-grey mb-6">
-                We sent a sign-in link to <strong>{email}</strong>.
-              </p>
-              <button
-                onClick={() => setSent(false)}
-                className="text-sm text-indigo-brand hover:underline"
-              >
-                &larr; Use a different email
-              </button>
-            </div>
           )}
         </DialogPanel>
       </div>
