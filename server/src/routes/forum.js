@@ -3,6 +3,7 @@ const router = express.Router()
 const authenticate = require('../middleware/authenticate')
 const { applyContentFilter } = require('../middleware/contentFilter')
 const { forumLimiter, commentLimiter } = require('../middleware/rateLimiter')
+const { createNotification } = require('../services/notificationService')
 const supabase = require('../lib/supabase')
 
 // POST /api/forum/posts
@@ -25,6 +26,24 @@ router.post(
       .single()
 
     if (error) return res.status(500).json({ error: error.message })
+
+    // Notify the idea's submitter that someone started a discussion
+    const { data: idea } = await supabase
+      .from('ideas')
+      .select('submitted_by')
+      .eq('id', idea_id)
+      .maybeSingle()
+
+    if (idea?.submitted_by) {
+      await createNotification(req.app.get('io'), {
+        userId:  idea.submitted_by,
+        type:    'idea_commented',
+        actorId: req.user.id,
+        ideaId:  idea_id,
+        postId:  data.id,
+      })
+    }
+
     res.status(201).json(data)
   }
 )
@@ -111,6 +130,27 @@ router.post(
       .single()
 
     if (error) return res.status(500).json({ error: error.message })
+
+    // Notify the post author + all prior commenters that someone replied
+    const [{ data: post }, { data: prevComments }] = await Promise.all([
+      supabase.from('forum_posts').select('user_id').eq('id', postId).single(),
+      supabase.from('forum_comments').select('user_id').eq('post_id', postId).neq('user_id', req.user.id),
+    ])
+
+    const toNotify = new Set()
+    if (post?.user_id) toNotify.add(post.user_id)
+    for (const c of prevComments ?? []) toNotify.add(c.user_id)
+
+    for (const uid of toNotify) {
+      await createNotification(req.app.get('io'), {
+        userId:    uid,
+        type:      'comment_replied',
+        actorId:   req.user.id,
+        postId:    postId,
+        commentId: data.id,
+      })
+    }
+
     res.status(201).json(data)
   }
 )

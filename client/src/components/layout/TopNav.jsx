@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAuthModal } from '../../contexts/AuthModalContext'
+import NotificationPanel from '../notifications/NotificationPanel'
 
 const NAV_LINKS = [
   { to: '/browse', label: 'Browse', end: true },
@@ -41,7 +42,8 @@ export default function TopNav() {
         </NavLink>
       ))}
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        {user && <NotificationPanel iconClassName="text-white" />}
         {user ? (
           <Menu as="div" className="relative">
             <MenuButton className="flex items-center gap-2 text-white/90 hover:text-white transition-colors">

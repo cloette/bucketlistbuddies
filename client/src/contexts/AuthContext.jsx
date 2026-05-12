@@ -30,6 +30,17 @@ export function AuthProvider({ children }) {
       .then(({ data }) => setProfile(data))
   }, [session])
 
+  async function updateProfile(updates) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', session.user.id)
+      .select('*')
+      .single()
+    if (!error && data) setProfile(data)
+    return { data, error }
+  }
+
   return (
     <AuthContext.Provider value={{
       session,
@@ -37,6 +48,7 @@ export function AuthProvider({ children }) {
       profile,
       loading: session === undefined,
       signOut: () => supabase.auth.signOut(),
+      updateProfile,
     }}>
       {children}
     </AuthContext.Provider>

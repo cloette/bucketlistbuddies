@@ -7,9 +7,20 @@
 -- =============================================================================
 -- TYPES
 -- =============================================================================
-CREATE TYPE list_visibility AS ENUM ('public', 'private');
-CREATE TYPE content_status  AS ENUM ('active', 'hidden');
+DO $$ BEGIN
+  CREATE TYPE list_visibility AS ENUM ('public', 'private');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
+DO $$ BEGIN
+  CREATE TYPE content_status AS ENUM ('active', 'hidden');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE notification_type AS ENUM ('idea_commented', 'comment_replied', 'dm_received');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =============================================================================
 -- TABLES
@@ -22,6 +33,7 @@ CREATE TABLE profiles (
   display_name         TEXT,
   avatar_url           TEXT,
   bio                  TEXT,
+  allow_dms            BOOLEAN NOT NULL DEFAULT true,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -110,6 +122,19 @@ CREATE TABLE direct_messages (
   CONSTRAINT no_self_message CHECK (sender_id <> recipient_id)
 );
 
+-- In-app notifications. Created server-side; read client-side via Supabase Realtime.
+CREATE TABLE notifications (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type       notification_type NOT NULL,
+  actor_id   UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  idea_id    UUID REFERENCES ideas(id) ON DELETE CASCADE,
+  post_id    UUID REFERENCES forum_posts(id) ON DELETE CASCADE,
+  comment_id UUID REFERENCES forum_comments(id) ON DELETE CASCADE,
+  read       BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- User-to-user blocks.
 CREATE TABLE blocked_users (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -137,7 +162,8 @@ CREATE INDEX idx_forum_comments_post   ON forum_comments(post_id);
 CREATE INDEX idx_dm_sender             ON direct_messages(sender_id);
 CREATE INDEX idx_dm_recipient          ON direct_messages(recipient_id);
 CREATE INDEX idx_dm_conversation       ON direct_messages(sender_id, recipient_id, created_at DESC);
-CREATE INDEX idx_blocked_blocker       ON blocked_users(blocker_id);
+CREATE INDEX idx_blocked_blocker        ON blocked_users(blocker_id);
+CREATE INDEX idx_notifications_user     ON notifications(user_id, created_at DESC);
 
 
 -- =============================================================================
@@ -246,6 +272,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -264,6 +291,7 @@ ALTER TABLE forum_posts       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_comments    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE direct_messages   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blocked_users     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications     ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "profiles: public read"
@@ -360,3 +388,10 @@ CREATE POLICY "direct_messages: recipient mark read"
 -- blocked_users
 CREATE POLICY "blocked_users: blocker all"
   ON blocked_users FOR ALL USING (auth.uid() = blocker_id);
+
+-- notifications
+CREATE POLICY "notifications: owner read"
+  ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "notifications: owner update"
+  ON notifications FOR UPDATE USING (auth.uid() = user_id);

@@ -3,6 +3,7 @@ const router = express.Router()
 const authenticate = require('../middleware/authenticate')
 const sanitizePrompt = require('../middleware/promptSanitize')
 const { dmLimiter } = require('../middleware/rateLimiter')
+const { createNotification } = require('../services/notificationService')
 const supabase = require('../lib/supabase')
 
 // GET /api/messages/conversations
@@ -66,15 +67,25 @@ router.post('/', authenticate, dmLimiter, sanitizePrompt, async (req, res) => {
     return res.status(400).json({ error: 'Cannot message yourself' })
   }
 
-  // Check if the sender is blocked by the recipient (silent drop — don't reveal block)
-  const { data: block } = await supabase
-    .from('blocked_users')
-    .select('id')
-    .eq('blocker_id', recipient_id)
-    .eq('blocked_id', senderId)
-    .maybeSingle()
+  // Check if sender is blocked OR if recipient has disabled DMs
+  const [{ data: block }, { data: recipientProfile }] = await Promise.all([
+    supabase
+      .from('blocked_users')
+      .select('id')
+      .eq('blocker_id', recipient_id)
+      .eq('blocked_id', senderId)
+      .maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('allow_dms')
+      .eq('id', recipient_id)
+      .maybeSingle(),
+  ])
 
   if (block) return res.status(200).json({ dropped: true })
+  if (recipientProfile?.allow_dms === false) {
+    return res.status(403).json({ error: 'This user is not accepting direct messages.' })
+  }
 
   const finalContent = req.sanitizedContent ?? content.trim()
 
@@ -86,8 +97,15 @@ router.post('/', authenticate, dmLimiter, sanitizePrompt, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message })
 
-  // Push real-time notification to recipient via Socket.io
-  req.app.get('io')?.to(`user:${recipient_id}`).emit('dm:new', data)
+  const io = req.app.get('io')
+
+  // Push real-time event and create notification for recipient
+  io?.to(`user:${recipient_id}`).emit('dm:new', data)
+  await createNotification(io, {
+    userId:   recipient_id,
+    type:     'dm_received',
+    actorId:  senderId,
+  })
 
   res.status(201).json(data)
 })
