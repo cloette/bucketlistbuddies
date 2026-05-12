@@ -18,7 +18,14 @@ export function SocketProvider({ children }) {
 
     const s = io(SOCKET_URL, {
       auth: { token: session.access_token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],  // polling fallback for Render cold-starts
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
+    })
+
+    // Suppress repeated connect_error noise in the browser console
+    s.on('connect_error', (err) => {
+      console.debug('[socket] connect error:', err.message)
     })
 
     setSocket(s)

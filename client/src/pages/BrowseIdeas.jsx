@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
+import { PlusIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useAuthModal } from '../contexts/AuthModalContext'
 import IdeaCard from '../components/ui/IdeaCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SubmitIdeaModal from '../components/ui/SubmitIdeaModal'
 
 export default function BrowseIdeas() {
   const { user } = useAuth()
+  const { openAuthModal } = useAuthModal()
 
   const [ideas, setIdeas] = useState([])
   const [categories, setCategories] = useState([])
@@ -13,6 +17,7 @@ export default function BrowseIdeas() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedCountry, setSelectedCountry] = useState('')
   const [loading, setLoading] = useState(true)
+  const [submitOpen, setSubmitOpen] = useState(false)
 
   // User state — tracked here so IdeaCard actions are instant
   const [userBucketListId, setUserBucketListId] = useState(null)
@@ -125,7 +130,16 @@ export default function BrowseIdeas() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-5">Browse Ideas</h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold text-gray-900">Browse Ideas</h1>
+        <button
+          onClick={() => user ? setSubmitOpen(true) : openAuthModal()}
+          className="flex items-center gap-1.5 text-sm font-semibold bg-indigo-brand text-white px-3 py-2 rounded-lg hover:opacity-90 transition-opacity"
+        >
+          <PlusIcon className="w-4 h-4" />
+          Submit idea
+        </button>
+      </div>
 
       {/* Category pills */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2 mb-4">
@@ -168,7 +182,7 @@ export default function BrowseIdeas() {
         </select>
       </div>
 
-      {/* Ideas grid */}
+      {/* Ideas grid — comes after filter controls */}
       {loading ? (
         <div className="flex justify-center py-16">
           <LoadingSpinner />
@@ -191,6 +205,22 @@ export default function BrowseIdeas() {
           ))}
         </div>
       )}
+
+      <SubmitIdeaModal
+        isOpen={submitOpen}
+        onClose={() => setSubmitOpen(false)}
+        categories={categories}
+        onSubmitted={(idea) => {
+          // Optimistically add the new idea to the top of the list if no category
+          // filter is active or if it matches the active filter
+          if (!selectedCategory || idea.category_id === selectedCategory) {
+            setIdeas(prev => [
+              { ...idea, add_count: 0, save_count: 0, forum_count: 0, categories: categories.find(c => c.id === idea.category_id) },
+              ...prev,
+            ])
+          }
+        }}
+      />
     </div>
   )
 }

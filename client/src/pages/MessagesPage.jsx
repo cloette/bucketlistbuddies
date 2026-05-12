@@ -267,27 +267,33 @@ export default function MessagesPage() {
   const socket = useSocket()
   const [conversations, setConversations] = useState([])
   const [profiles, setProfiles]           = useState({})
-  const [loadingConvs, setLoadingConvs]   = useState(true)
+  const [loadingConvs, setLoadingConvs]   = useState(false)
 
   const fetchConversations = useCallback(async () => {
-    const res = await apiFetch('/api/messages/conversations')
-    if (!res.ok) return
-    const data = await res.json()
-    setConversations(data)
+    setLoadingConvs(true)
+    try {
+      const res = await apiFetch('/api/messages/conversations')
+      if (!res.ok) return
+      const data = await res.json()
+      setConversations(data)
 
-    const ids = data.map(c => c.partnerId)
-    if (ids.length > 0) {
-      const { data: profileRows } = await supabase
-        .from('profiles')
-        .select('id, display_name, username')
-        .in('id', ids)
-      if (profileRows) {
-        const map = {}
-        for (const p of profileRows) map[p.id] = p
-        setProfiles(prev => ({ ...prev, ...map }))
+      const ids = data.map(c => c.partnerId)
+      if (ids.length > 0) {
+        const { data: profileRows } = await supabase
+          .from('profiles')
+          .select('id, display_name, username')
+          .in('id', ids)
+        if (profileRows) {
+          const map = {}
+          for (const p of profileRows) map[p.id] = p
+          setProfiles(prev => ({ ...prev, ...map }))
+        }
       }
+    } catch (err) {
+      console.error('[messages]', err)
+    } finally {
+      setLoadingConvs(false)
     }
-    setLoadingConvs(false)
   }, [])
 
   useEffect(() => {
