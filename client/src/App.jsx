@@ -9,6 +9,7 @@ import BrowseIdeas from './pages/BrowseIdeas'
 import MyBucketList from './pages/MyBucketList'
 import MessagesPage from './pages/MessagesPage'
 import SettingsPage from './pages/SettingsPage'
+import ProfilePage from './pages/ProfilePage'
 import NotFound from './pages/NotFound'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
                   <Route path="messages" element={<MessagesPage />} />
                   <Route path="messages/:partnerId" element={<MessagesPage />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="profile/:username" element={<ProfilePage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
