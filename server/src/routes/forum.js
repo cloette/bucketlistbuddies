@@ -117,7 +117,7 @@ router.post(
 
     const { data: post } = await supabase
       .from('forum_posts')
-      .select('id')
+      .select('id, user_id')
       .eq('id', postId)
       .maybeSingle()
 
@@ -132,13 +132,14 @@ router.post(
     if (error) return res.status(500).json({ error: error.message })
 
     // Notify the post author + all prior commenters that someone replied
-    const [{ data: post }, { data: prevComments }] = await Promise.all([
-      supabase.from('forum_posts').select('user_id').eq('id', postId).single(),
-      supabase.from('forum_comments').select('user_id').eq('post_id', postId).neq('user_id', req.user.id),
-    ])
+    const { data: prevComments } = await supabase
+      .from('forum_comments')
+      .select('user_id')
+      .eq('post_id', postId)
+      .neq('user_id', req.user.id)
 
     const toNotify = new Set()
-    if (post?.user_id) toNotify.add(post.user_id)
+    if (post.user_id) toNotify.add(post.user_id)
     for (const c of prevComments ?? []) toNotify.add(c.user_id)
 
     for (const uid of toNotify) {

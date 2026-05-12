@@ -11,8 +11,9 @@ import { useAuthModal } from '../../contexts/AuthModalContext'
 import NotificationPanel from '../notifications/NotificationPanel'
 
 const NAV_LINKS = [
-  { to: '/browse', label: 'Browse', end: true },
-  { to: '/my-list', label: 'My List', end: false },
+  { to: '/browse',   label: 'Browse',   end: true  },
+  { to: '/my-list',  label: 'My List',  end: false },
+  { to: '/messages', label: 'Messages', end: false },
 ]
 
 export default function TopNav() {

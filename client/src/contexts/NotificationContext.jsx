@@ -8,7 +8,8 @@ export function NotificationProvider({ children }) {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount   = notifications.filter(n => !n.read).length
+  const dmUnreadCount = notifications.filter(n => n.type === 'dm_received' && !n.read).length
 
   useEffect(() => {
     if (!user) { setNotifications([]); return }
@@ -56,8 +57,24 @@ export function NotificationProvider({ children }) {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
+  async function markDmRead(actorId) {
+    if (!user || !actorId) return
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('type', 'dm_received')
+      .eq('actor_id', actorId)
+      .eq('read', false)
+    setNotifications(prev =>
+      prev.map(n =>
+        n.type === 'dm_received' && n.actor_id === actorId ? { ...n, read: true } : n
+      )
+    )
+  }
+
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markAllRead }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, dmUnreadCount, markAllRead, markDmRead }}>
       {children}
     </NotificationContext.Provider>
   )
