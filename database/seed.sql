@@ -17,7 +17,8 @@ INSERT INTO categories (name, slug) VALUES
   ('Nature',           'nature'),
   ('Social',           'social'),
   ('Wellness',         'wellness'),
-  ('Career',           'career')
+  ('Career',           'career'),
+  ('Other',            'other')
 ON CONFLICT (slug) DO NOTHING;
 
 

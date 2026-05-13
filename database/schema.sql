@@ -266,7 +266,7 @@ BEGIN
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    'user_' || replace(NEW.id::text, '-', '')
+    'user' || (1000 + floor(random() * 9000)::int)::text
   );
   RETURN NEW;
 END;

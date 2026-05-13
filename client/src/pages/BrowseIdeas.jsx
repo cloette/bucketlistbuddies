@@ -6,6 +6,7 @@ import { useAuthModal } from '../contexts/AuthModalContext'
 import IdeaCard from '../components/ui/IdeaCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import SubmitIdeaModal from '../components/ui/SubmitIdeaModal'
+import ForumModal from '../components/forum/ForumModal'
 
 export default function BrowseIdeas() {
   const { user } = useAuth()
@@ -18,6 +19,7 @@ export default function BrowseIdeas() {
   const [selectedCountry, setSelectedCountry] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitOpen, setSubmitOpen] = useState(false)
+  const [forumIdea, setForumIdea]   = useState(null)
 
   // User state — tracked here so IdeaCard actions are instant
   const [userBucketListId, setUserBucketListId] = useState(null)
@@ -201,10 +203,17 @@ export default function BrowseIdeas() {
               isSaved={userSavedIds.has(idea.id)}
               onToggleList={toggleList}
               onToggleSave={toggleSave}
+              onOpenForum={setForumIdea}
             />
           ))}
         </div>
       )}
+
+      <ForumModal
+        idea={forumIdea}
+        isOpen={!!forumIdea}
+        onClose={() => setForumIdea(null)}
+      />
 
       <SubmitIdeaModal
         isOpen={submitOpen}

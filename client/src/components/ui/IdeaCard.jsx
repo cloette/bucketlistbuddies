@@ -4,11 +4,12 @@ import {
   GlobeAltIcon,
   PlusCircleIcon,
   CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid'
 import { useAuth } from '../../contexts/AuthContext'
 
-export default function IdeaCard({ idea, isInList, isSaved, onToggleList, onToggleSave }) {
+export default function IdeaCard({ idea, isInList, isSaved, onToggleList, onToggleSave, onOpenForum }) {
   const { user } = useAuth()
   const [listPending, setListPending] = useState(false)
   const [savePending, setSavePending] = useState(false)
@@ -71,8 +72,15 @@ export default function IdeaCard({ idea, isInList, isSaved, onToggleList, onTogg
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
         <div className="flex items-center gap-3 text-xs text-dim-grey">
           <span>{idea.add_count} added</span>
-          <span>{idea.save_count} saved</span>
-          {idea.forum_count > 0 && <span>{idea.forum_count} posts</span>}
+          <button
+            onClick={() => onOpenForum?.(idea)}
+            className="flex items-center gap-1 hover:text-indigo-brand transition-colors"
+          >
+            <ChatBubbleLeftRightIcon className="w-3.5 h-3.5 shrink-0" />
+            {idea.forum_count > 0
+              ? `${idea.forum_count} ${idea.forum_count === 1 ? 'thread' : 'threads'}`
+              : 'Discussion'}
+          </button>
         </div>
 
         {user ? (

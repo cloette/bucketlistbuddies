@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
 const INPUT = 'w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-brand/40 disabled:bg-gray-50 disabled:text-dim-grey'
@@ -6,20 +7,30 @@ const INPUT = 'w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focu
 export default function SettingsPage() {
   const { profile, updateProfile } = useAuth()
 
-  const [displayName, setDisplayName] = useState('')
-  const [username, setUsername]       = useState('')
-  const [bio, setBio]                 = useState('')
-  const [allowDms, setAllowDms]       = useState(true)
-  const [saving, setSaving]           = useState(false)
-  const [message, setMessage]         = useState(null) // { type: 'success'|'error', text }
+  const [displayName, setDisplayName]       = useState('')
+  const [username, setUsername]             = useState('')
+  const [bio, setBio]                       = useState('')
+  const [allowDms, setAllowDms]             = useState(true)
+  const [listVisibility, setListVisibility] = useState('private')
+  const [bucketListId, setBucketListId]     = useState(null)
+  const [saving, setSaving]                 = useState(false)
+  const [message, setMessage]               = useState(null)
 
   useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.display_name ?? '')
-      setUsername(profile.username ?? '')
-      setBio(profile.bio ?? '')
-      setAllowDms(profile.allow_dms ?? true)
-    }
+    if (!profile) return
+    setDisplayName(profile.display_name ?? '')
+    setUsername(profile.username ?? '')
+    setBio(profile.bio ?? '')
+    setAllowDms(profile.allow_dms ?? true)
+
+    supabase
+      .from('bucket_lists')
+      .select('id, visibility')
+      .eq('user_id', profile.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) { setBucketListId(data.id); setListVisibility(data.visibility) }
+      })
   }, [profile])
 
   async function handleSave(e) {
@@ -32,19 +43,30 @@ export default function SettingsPage() {
     }
 
     setSaving(true)
-    const { error } = await updateProfile({
-      display_name: displayName.trim() || null,
-      username: trimmedUsername,
-      bio: bio.trim() || null,
-      allow_dms: allowDms,
-    })
+
+    const [{ error: profileError }, listResult] = await Promise.all([
+      updateProfile({
+        display_name: displayName.trim() || null,
+        username: trimmedUsername,
+        bio: bio.trim() || null,
+        allow_dms: allowDms,
+      }),
+      bucketListId
+        ? supabase.from('bucket_lists').update({ visibility: listVisibility }).eq('id', bucketListId)
+        : supabase.from('bucket_lists').insert({ user_id: profile.id, visibility: listVisibility }).select('id').single(),
+    ])
+
+    // If we just created the bucket list, store its ID for future saves
+    if (!bucketListId && listResult.data?.id) setBucketListId(listResult.data.id)
+
     setSaving(false)
 
-    if (error) {
-      if (error.code === '23505') {
+    const listError = listResult.error
+    if (profileError || listError) {
+      if (profileError?.code === '23505') {
         setMessage({ type: 'error', text: 'That username is already taken.' })
       } else {
-        setMessage({ type: 'error', text: error.message })
+        setMessage({ type: 'error', text: profileError?.message || listError?.message })
       }
     } else {
       setMessage({ type: 'success', text: 'Settings saved.' })
@@ -103,27 +125,26 @@ export default function SettingsPage() {
         {/* Privacy section */}
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Privacy</h2>
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-5">
+          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-5 space-y-4">
+            <label className="flex items-center justify-between gap-4 cursor-pointer">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Public bucket list</p>
+                <p className="text-xs text-dim-grey mt-0.5">Anyone can view your bucket list on your profile.</p>
+              </div>
+              <Toggle
+                checked={listVisibility === 'public'}
+                onChange={v => setListVisibility(v ? 'public' : 'private')}
+              />
+            </label>
+
+            <div className="border-t border-gray-100" />
+
             <label className="flex items-center justify-between gap-4 cursor-pointer">
               <div>
                 <p className="text-sm font-medium text-gray-800">Allow direct messages</p>
                 <p className="text-xs text-dim-grey mt-0.5">Other users can send you private messages.</p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={allowDms}
-                onClick={() => setAllowDms(v => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-brand ${
-                  allowDms ? 'bg-indigo-brand' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
-                    allowDms ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+              <Toggle checked={allowDms} onChange={setAllowDms} />
             </label>
           </div>
         </section>
@@ -143,5 +164,25 @@ export default function SettingsPage() {
         </button>
       </form>
     </div>
+  )
+}
+
+function Toggle({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-brand ${
+        checked ? 'bg-indigo-brand' : 'bg-gray-200'
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
   )
 }
