@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid'
 import { useAuth } from '../../contexts/AuthContext'
+import FlagButton from './FlagButton'
 
 export default function IdeaCard({ idea, isInList, isSaved, onToggleList, onToggleSave, onOpenForum }) {
   const { user } = useAuth()
@@ -81,6 +82,7 @@ export default function IdeaCard({ idea, isInList, isSaved, onToggleList, onTogg
               ? `${idea.forum_count} ${idea.forum_count === 1 ? 'thread' : 'threads'}`
               : 'Discussion'}
           </button>
+          {user && <FlagButton ideaId={idea.id} />}
         </div>
 
         {user ? (

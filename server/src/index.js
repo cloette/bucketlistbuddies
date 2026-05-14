@@ -10,6 +10,7 @@ const ideasRouter    = require('./routes/ideas')
 const forumRouter    = require('./routes/forum')
 const messagesRouter = require('./routes/messages')
 const usersRouter    = require('./routes/users')
+const flagsRouter    = require('./routes/flags')
 
 const app = express()
 const httpServer = createServer(app)
@@ -42,6 +43,7 @@ app.use('/api/ideas',    ideasRouter)
 app.use('/api/forum',    forumRouter)
 app.use('/api/messages', messagesRouter)
 app.use('/api/users',    usersRouter)
+app.use('/api/flags',    flagsRouter)
 
 // 404
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }))

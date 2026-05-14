@@ -4,6 +4,7 @@ const authenticate = require('../middleware/authenticate')
 const { applyContentFilter } = require('../middleware/contentFilter')
 const { forumLimiter, commentLimiter } = require('../middleware/rateLimiter')
 const { createNotification } = require('../services/notificationService')
+const { isDuplicate } = require('../utils/spam')
 const supabase = require('../lib/supabase')
 
 // POST /api/forum/posts
@@ -19,6 +20,19 @@ router.post(
       return res.status(400).json({ error: 'idea_id, title, and body are required' })
     }
 
+    const duplicate = await isDuplicate({
+      table:        'forum_posts',
+      userField:    'user_id',
+      userId:       req.user.id,
+      contentField: 'title',
+      content:      title.trim(),
+      windowMs:     60 * 60 * 1000, // 1 hour
+    })
+
+    if (duplicate) {
+      return res.status(429).json({ error: 'You already posted a very similar thread recently.' })
+    }
+
     const { data, error } = await supabase
       .from('forum_posts')
       .insert({ idea_id, title: title.trim(), body: body.trim(), user_id: req.user.id })
@@ -27,7 +41,6 @@ router.post(
 
     if (error) return res.status(500).json({ error: error.message })
 
-    // Notify the idea's submitter that someone started a discussion
     const { data: idea } = await supabase
       .from('ideas')
       .select('submitted_by')
@@ -123,6 +136,20 @@ router.post(
 
     if (!post) return res.status(404).json({ error: 'Post not found' })
 
+    const duplicate = await isDuplicate({
+      table:        'forum_comments',
+      userField:    'user_id',
+      userId:       req.user.id,
+      contentField: 'body',
+      content:      body.trim(),
+      windowMs:     60 * 60 * 1000, // 1 hour
+      extraEq:      { column: 'post_id', value: postId },
+    })
+
+    if (duplicate) {
+      return res.status(429).json({ error: 'You already posted a very similar comment recently.' })
+    }
+
     const { data, error } = await supabase
       .from('forum_comments')
       .insert({ post_id: postId, body: body.trim(), user_id: req.user.id })
@@ -131,7 +158,6 @@ router.post(
 
     if (error) return res.status(500).json({ error: error.message })
 
-    // Notify the post author + all prior commenters that someone replied
     const { data: prevComments } = await supabase
       .from('forum_comments')
       .select('user_id')

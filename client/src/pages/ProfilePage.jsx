@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { CheckCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import FlagButton from '../components/ui/FlagButton'
 
 export default function ProfilePage() {
   const { username } = useParams()
@@ -102,21 +103,30 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {isOwnProfile ? (
-          <Link
-            to="/settings"
-            className="shrink-0 text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Edit profile
-          </Link>
-        ) : user && profile.allow_dms ? (
-          <button
-            onClick={() => navigate(`/messages/${profile.id}`)}
-            className="shrink-0 text-sm bg-indigo-brand text-white font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Message
-          </button>
-        ) : null}
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          {isOwnProfile ? (
+            <Link
+              to="/settings"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Edit profile
+            </Link>
+          ) : (
+            <>
+              {user && profile.allow_dms && (
+                <button
+                  onClick={() => navigate(`/messages/${profile.id}`)}
+                  className="text-sm bg-indigo-brand text-white font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  Message
+                </button>
+              )}
+              {user && (
+                <FlagButton targetUserId={profile.id} />
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

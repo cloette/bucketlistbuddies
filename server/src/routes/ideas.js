@@ -3,6 +3,7 @@ const router = express.Router()
 const authenticate = require('../middleware/authenticate')
 const { applyContentFilter } = require('../middleware/contentFilter')
 const { ideaLimiter } = require('../middleware/rateLimiter')
+const { isDuplicate } = require('../utils/spam')
 const supabase = require('../lib/supabase')
 
 // POST /api/ideas
@@ -21,13 +22,26 @@ router.post(
       return res.status(400).json({ error: 'category_id is required' })
     }
 
+    const duplicate = await isDuplicate({
+      table:        'ideas',
+      userField:    'submitted_by',
+      userId:       req.user.id,
+      contentField: 'title',
+      content:      title.trim(),
+      windowMs:     24 * 60 * 60 * 1000, // 24 hours
+    })
+
+    if (duplicate) {
+      return res.status(429).json({ error: 'You already submitted a very similar idea recently.' })
+    }
+
     const { data, error } = await supabase
       .from('ideas')
       .insert({
-        title: title.trim(),
-        description: description?.trim() || null,
+        title:        title.trim(),
+        description:  description?.trim() || null,
         category_id,
-        country: country?.trim() || 'anywhere',
+        country:      country?.trim() || 'anywhere',
         submitted_by: req.user.id,
       })
       .select('id, title, description, country, category_id, created_at')
