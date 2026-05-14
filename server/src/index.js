@@ -21,9 +21,15 @@ app.set('io', io)
 // Trust Render's proxy so req.ip is the real client IP (needed for rate limiting)
 app.set('trust proxy', 1)
 
+// CLIENT_URL may be a comma-separated list of allowed origins, e.g.:
+//   CLIENT_URL=https://myapp.vercel.app,http://localhost:5173
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+
 app.use(helmet())
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
 }))
 app.use(express.json())

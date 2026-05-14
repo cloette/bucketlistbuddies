@@ -54,11 +54,12 @@ export default function SubmitIdeaModal({ isOpen, onClose, categories, onSubmitt
       <div className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <DialogPanel
           transition
-          className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl p-6 pb-8 sm:pb-6 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:translate-y-4 sm:data-[closed]:translate-y-0 sm:data-[closed]:scale-95"
+          className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl p-6 pb-8 sm:pb-6 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:translate-y-4 sm:data-[closed]:translate-y-0 sm:data-[closed]:scale-95"
         >
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 text-dim-grey hover:text-gray-900 transition-colors"
+            aria-label="Close"
+            className="absolute top-4 right-4 p-1 rounded-lg text-dim-grey hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>

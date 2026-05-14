@@ -2,9 +2,13 @@ const { Server } = require('socket.io')
 const supabase = require('../lib/supabase')
 
 function setupSocket(httpServer) {
+  const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+    .split(',')
+    .map(s => s.trim())
+
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },
