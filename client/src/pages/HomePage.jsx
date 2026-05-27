@@ -79,10 +79,10 @@ export default function HomePage() {
 
       <section>
         <div style={{display: 'flex', flexDirection: 'row'}}>
-          <div style={{backgroundImage: `url(${image1})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
-          <div style={{backgroundImage: `url(${image2})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
-          <div style={{backgroundImage: `url(${image3})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
-          <div style={{backgroundImage: `url(${image4})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
+          <img src={image1} alt="Image 1 People giving cheers" style={{width: '25%', objectFit: 'cover'}} />
+          <img src={image2} alt="Image 2 Woman with a small mushroom" style={{width: '25%', objectFit: 'cover'}} />
+          <img src={image3} alt="Image 3 Man hiking in the mountains" style={{width: '25%', objectFit: 'cover'}} />
+          <img src={image4} alt="Image 4 Three Photographer friends hanging out" style={{width: '25%', objectFit: 'cover'}} />
         </div>
       </section>
 
