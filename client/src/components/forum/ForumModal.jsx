@@ -197,6 +197,9 @@ function ThreadView({ postId, onBack, onDeleted }) {
           <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{thread.body}</p>
           <div className="flex items-center gap-3 mt-3">
             <p className="text-xs text-dim-grey">
+              <a href={`/profile/${thread.profiles?.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-brand hover:underline">
+                {threadAuthor}
+              </a>
               {threadAuthor} · {timeAgo(thread.created_at)}
             </p>
             <div className="flex items-center gap-2 ml-auto">
@@ -224,7 +227,12 @@ function ThreadView({ postId, onBack, onDeleted }) {
               return (
                 <li key={comment.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-gray-700">{commentAuthor}</p>
+                    <p className="text-xs font-medium text-gray-700">
+                      <a href={`/profile/${comment.profiles?.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-brand hover:underline">
+                        {commentAuthor}
+                      </a>
+                       · {timeAgo(comment.created_at)}
+                    </p>
                     <div className="flex items-center gap-2 shrink-0">
                       {isCommentOwner ? (
                         <button
