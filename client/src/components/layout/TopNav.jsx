@@ -12,6 +12,9 @@ import NotificationPanel from '../notifications/NotificationPanel'
 
 const NAV_LINKS = [
   { to: '/browse',   label: 'Browse',   end: true  },
+]
+
+const NAV_LINKS2 = [
   { to: '/my-list',  label: 'My List',  end: false },
   { to: '/messages', label: 'Messages', end: false },
 ]
@@ -42,6 +45,23 @@ export default function TopNav() {
           {label}
         </NavLink>
       ))}
+      { user ? (
+      NAV_LINKS2.map(({ to, label, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) =>
+            isActive
+              ? 'text-canary font-medium'
+              : 'text-white/75 hover:text-white transition-colors'
+          }
+        >
+          {label}
+        </NavLink>
+        )
+        : null
+      }
 
       <div className="ml-auto flex items-center gap-2">
         {user && <NotificationPanel iconClassName="text-white" />}
