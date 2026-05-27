@@ -60,7 +60,8 @@ export default function TopNav() {
           {label}
         </NavLink>
         )
-        : null
+        )
+        ) : null
       }
 
       <div className="ml-auto flex items-center gap-2">
