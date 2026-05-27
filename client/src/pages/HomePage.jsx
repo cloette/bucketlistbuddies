@@ -6,6 +6,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
 import { useAuthModal } from '../contexts/AuthModalContext'
+import {image1, image2, image3, image4} from '../assets/images.jsx'
 
 const FEATURES = [
   {
@@ -34,11 +35,11 @@ export default function HomePage() {
       {/* Hero */}
       <section className="bg-indigo-brand text-white px-6 py-20 md:py-32 text-center">
         <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">
-          The world is your{' '}
-          <span className="text-canary">bucket list.</span>
+          Dream big. <br></br>
+          <span className="text-canary">Share the journey.</span>
         </h1>
         <p className="text-lg md:text-xl text-white/75 max-w-xl mx-auto mb-10">
-          Discover experiences, build your personal list, and connect with others who share your passions.
+          A bucket list is a list of experiences you want to have before you die. Build your list here, share it, and connect with others for helpful tips, celebrations, and travel buddies.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -73,6 +74,15 @@ export default function HomePage() {
               </Link>
             </>
           )}
+        </div>
+      </section>
+
+      <section>
+        <div style={{display: 'flex', flexDirection: 'row'}}>
+          <div style={{backgroundImage: `url(${image1})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
+          <div style={{backgroundImage: `url(${image2})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
+          <div style={{backgroundImage: `url(${image3})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
+          <div style={{backgroundImage: `url(${image4})`, backgroundSize: 'cover', backgroundPosition: 'center', width: `25%`}}></div>
         </div>
       </section>
 
