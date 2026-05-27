@@ -62,7 +62,9 @@ function ThreadList({ posts, loading, onNewThread, onSelectThread }) {
                     <p className="text-sm text-dim-grey mt-1 line-clamp-2 leading-relaxed">{post.body}</p>
                   )}
                   <p className="text-xs text-dim-grey mt-2">
-                    {author}
+                    <a href={`/profile/${post.profiles?.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-brand hover:underline">
+                      {author}
+                    </a>
                     {post.comment_count > 0 && (
                       <span> · {post.comment_count} {post.comment_count === 1 ? 'reply' : 'replies'}</span>
                     )}
