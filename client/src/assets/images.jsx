@@ -1,4 +1,4 @@
-export 'image1.jpg' as image1
-export 'image2.jpg' as image2
-export 'image3.jpg' as image3
-export 'image4.jpg' as image4
+export const image1 = 'image1.jpg';
+export const image2 = 'image2.jpg';
+export const image3 = 'image3.jpg';
+export const image4 = 'image4.jpg';
